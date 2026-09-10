@@ -24,10 +24,11 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/domain"]
+packages = ["src/domain", "src/environment", "src/simulation"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
+pythonpath = ["src"]
 
 [tool.ruff]
 target-version = "py313"
@@ -47,4 +48,3 @@ pythonVersion = "3.13"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
-
