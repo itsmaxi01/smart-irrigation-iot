@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "smart-irrigation-iot"
 version = "0.1.0"
-description = "Smart irrigation IoT project."
+description = "Proyecto IoT de riego inteligente."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/domain", "src/environment", "src/simulation"]
+packages = ["src/aplicacion", "src/dominio", "src/ambiente", "src/simulacion"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"

@@ -1,9 +1,9 @@
 # pyright: reportUnnecessaryIsInstance=false
 
-from domain.enums import EstadoValvula, Modo, VelocidadRiego
+from dominio.enumeraciones import EstadoValvula, Modo, VelocidadRiego
 
 
-class IrrigationDevice:
+class DispositivoRiego:
     def __init__(
         self,
         modo: Modo,

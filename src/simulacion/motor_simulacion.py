@@ -2,11 +2,11 @@
 
 import math
 
-from domain.enums import EstadoValvula, Lluvia, Modo, Radiacion, VelocidadRiego
-from domain.irrigation_device import IrrigationDevice
+from dominio.dispositivo_riego import DispositivoRiego
+from dominio.enumeraciones import EstadoValvula, Lluvia, Modo, Radiacion, VelocidadRiego
 
 
-def calculate_drying(
+def calcular_secado(
     temperatura: float,
     humedad_ambiente: float,
     radiacion: Radiacion,
@@ -41,7 +41,7 @@ def calculate_drying(
     return secado
 
 
-def calculate_rain_contribution(lluvia: Lluvia) -> float:
+def calcular_aporte_lluvia(lluvia: Lluvia) -> float:
     if lluvia == Lluvia.NINGUNA:
         return 0.0
     elif lluvia == Lluvia.LIGERA:
@@ -54,7 +54,7 @@ def calculate_rain_contribution(lluvia: Lluvia) -> float:
     raise ValueError("Tipo de lluvia no válido")
 
 
-def calculate_irrigation_contribution(velocidad: VelocidadRiego) -> float:
+def calcular_aporte_riego(velocidad: VelocidadRiego) -> float:
     if velocidad == VelocidadRiego.BAJA:
         return 0.50
     elif velocidad == VelocidadRiego.MEDIA:
@@ -65,7 +65,7 @@ def calculate_irrigation_contribution(velocidad: VelocidadRiego) -> float:
     raise ValueError("Velocidad de riego no válida")
 
 
-def calculate_water_consumption(velocidad: VelocidadRiego) -> float:
+def calcular_consumo_agua(velocidad: VelocidadRiego) -> float:
     if velocidad == VelocidadRiego.BAJA:
         return 0.05
     elif velocidad == VelocidadRiego.MEDIA:
@@ -76,56 +76,56 @@ def calculate_water_consumption(velocidad: VelocidadRiego) -> float:
     raise ValueError("Velocidad de riego no válida")
 
 
-class SimulationEngine:
+class MotorSimulacion:
     @staticmethod
-    def tick(
-        device: IrrigationDevice,
+    def ejecutar_tick(
+        dispositivo: DispositivoRiego,
         temperatura: float,
         humedad_ambiente: float,
         radiacion: Radiacion,
         lluvia: Lluvia,
     ) -> None:
-        _validate_environment(temperatura, humedad_ambiente, radiacion, lluvia)
+        _validar_ambiente(temperatura, humedad_ambiente, radiacion, lluvia)
 
-        if not isinstance(device, IrrigationDevice):
+        if not isinstance(dispositivo, DispositivoRiego):
             raise ValueError("El dispositivo no es válido")
 
-        _prepare_valve(device)
+        _preparar_valvula(dispositivo)
 
-        humidity_delta = (
-            _calculate_real_irrigation(device)
-            + calculate_rain_contribution(lluvia)
-            - calculate_drying(temperatura, humedad_ambiente, radiacion)
+        delta_humedad = (
+            _calcular_riego_real(dispositivo)
+            + calcular_aporte_lluvia(lluvia)
+            - calcular_secado(temperatura, humedad_ambiente, radiacion)
         )
-        device.aplicar_cambio_humedad(humidity_delta)
+        dispositivo.aplicar_cambio_humedad(delta_humedad)
 
 
-def _prepare_valve(device: IrrigationDevice) -> None:
-    if device.nivel_agua == 0:
-        device.cerrar_valvula()
-    elif device.modo == Modo.AUTOMATICO:
-        _update_automatic_valve(device)
+def _preparar_valvula(dispositivo: DispositivoRiego) -> None:
+    if dispositivo.nivel_agua == 0:
+        dispositivo.cerrar_valvula()
+    elif dispositivo.modo == Modo.AUTOMATICO:
+        _actualizar_valvula_automatica(dispositivo)
 
 
-def _update_automatic_valve(device: IrrigationDevice) -> None:
-    if device.humedad_suelo < device.humedad_minima:
-        device.abrir_valvula()
-    elif device.humedad_suelo >= device.humedad_objetivo:
-        device.cerrar_valvula()
+def _actualizar_valvula_automatica(dispositivo: DispositivoRiego) -> None:
+    if dispositivo.humedad_suelo < dispositivo.humedad_minima:
+        dispositivo.abrir_valvula()
+    elif dispositivo.humedad_suelo >= dispositivo.humedad_objetivo:
+        dispositivo.cerrar_valvula()
 
 
-def _calculate_real_irrigation(device: IrrigationDevice) -> float:
-    if device.estado_valvula != EstadoValvula.ABIERTA:
+def _calcular_riego_real(dispositivo: DispositivoRiego) -> float:
+    if dispositivo.estado_valvula != EstadoValvula.ABIERTA:
         return 0.0
 
-    expected_consumption = calculate_water_consumption(device.velocidad_riego)
-    consumed_water = device.consumir_agua(expected_consumption)
-    available_factor = consumed_water / expected_consumption
+    consumo_esperado = calcular_consumo_agua(dispositivo.velocidad_riego)
+    agua_consumida = dispositivo.consumir_agua(consumo_esperado)
+    factor_disponible = agua_consumida / consumo_esperado
 
-    return calculate_irrigation_contribution(device.velocidad_riego) * available_factor
+    return calcular_aporte_riego(dispositivo.velocidad_riego) * factor_disponible
 
 
-def _validate_environment(
+def _validar_ambiente(
     temperatura: float,
     humedad_ambiente: float,
     radiacion: Radiacion,

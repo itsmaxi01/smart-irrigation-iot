@@ -30,6 +30,6 @@ class Lluvia(Enum):
     FUERTE = "fuerte"
 
 
-class EnvironmentSource(Enum):
+class FuenteAmbiente(Enum):
     MANUAL = "manual"
-    RANDOM = "random"
+    ALEATORIO = "aleatorio"

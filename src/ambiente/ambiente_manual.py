@@ -1,7 +1,7 @@
-from domain.enums import Lluvia, Radiacion
+from dominio.enumeraciones import Lluvia, Radiacion
 
 
-class ManualEnvironment:
+class AmbienteManual:
     def __init__(
         self,
         temperatura: float,
@@ -14,10 +14,10 @@ class ManualEnvironment:
         self._radiacion = radiacion
         self._lluvia = lluvia
 
-    def get_conditions(self) -> tuple[float, float, Radiacion, Lluvia]:
+    def obtener_condiciones(self) -> tuple[float, float, Radiacion, Lluvia]:
         return self._temperatura, self._humedad_ambiente, self._radiacion, self._lluvia
 
-    def update_conditions(
+    def actualizar_condiciones(
         self,
         temperatura: float,
         humedad_ambiente: float,
