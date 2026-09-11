@@ -46,13 +46,16 @@ def test_cambia_modo_de_automatico_a_manual() -> None:
 
 
 @pytest.mark.parametrize("modo", [Modo.MANUAL, Modo.AUTOMATICO])
-def test_cambia_velocidad_en_cualquier_modo(modo: Modo) -> None:
+@pytest.mark.parametrize("velocidad", ["BAJA", "MEDIA", "ALTA"])
+def test_acepta_velocidades_publicas_en_cualquier_modo(
+    modo: Modo, velocidad: str
+) -> None:
     servicio_dispositivo.cambiar_modo(modo)
 
-    respuesta = cliente.patch("/api/device/speed", json={"speed": "ALTA"})
+    respuesta = cliente.patch("/api/device/speed", json={"speed": velocidad})
 
     assert respuesta.status_code == 200
-    assert respuesta.json()["irrigation_speed"] == "ALTA"
+    assert respuesta.json()["irrigation_speed"] == velocidad
 
 
 def test_abre_valvula_en_manual() -> None:
@@ -86,15 +89,71 @@ def test_rechaza_controlar_valvula_en_automatico(estado: str) -> None:
 @pytest.mark.parametrize(
     ("ruta", "payload"),
     [
-        ("/api/device/mode", {"mode": "SUPERSAIYAJIN"}),
-        ("/api/device/speed", {"speed": "TURBO"}),
-        ("/api/device/valve", {"state": "ENTREABIERTA"}),
+        ("/api/device/mode", {"mode": "PEPINO"}),
+        ("/api/device/speed", {"speed": "PEPINO"}),
+        ("/api/device/valve", {"state": "PEPINO"}),
     ],
 )
 def test_rechaza_valores_invalidos(ruta: str, payload: dict[str, str]) -> None:
     respuesta = cliente.patch(ruta, json=payload)
 
     assert respuesta.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("ruta", "payload"),
+    [
+        ("/api/device/mode", {"mode": "automatico"}),
+        ("/api/device/mode", {"mode": "manual"}),
+        ("/api/device/speed", {"speed": 1}),
+        ("/api/device/speed", {"speed": 2}),
+        ("/api/device/speed", {"speed": 3}),
+        ("/api/device/valve", {"state": "abierta"}),
+        ("/api/device/valve", {"state": "cerrada"}),
+    ],
+)
+def test_rechaza_valores_internos_del_dominio(
+    ruta: str, payload: dict[str, str | int]
+) -> None:
+    respuesta = cliente.patch(ruta, json=payload)
+
+    assert respuesta.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("ruta", "payload"),
+    [
+        ("/api/device/mode", {"mode": "MANUAL", "extra": True}),
+        ("/api/device/speed", {"speed": "MEDIA", "extra": True}),
+        ("/api/device/valve", {"state": "CERRADA", "extra": True}),
+    ],
+)
+def test_rechaza_campos_extra(ruta: str, payload: dict[str, str | bool]) -> None:
+    respuesta = cliente.patch(ruta, json=payload)
+
+    assert respuesta.status_code == 422
+
+
+def test_openapi_documenta_los_valores_publicos() -> None:
+    esquemas = app.openapi()["components"]["schemas"]
+
+    assert esquemas["CambiarModoRequest"]["properties"]["mode"]["enum"] == [
+        "AUTOMATICO",
+        "MANUAL",
+    ]
+    assert esquemas["CambiarVelocidadRequest"]["properties"]["speed"]["enum"] == [
+        "BAJA",
+        "MEDIA",
+        "ALTA",
+    ]
+    assert esquemas["CambiarValvulaRequest"]["properties"]["state"]["enum"] == [
+        "ABIERTA",
+        "CERRADA",
+    ]
+    respuesta = esquemas["EstadoDispositivoResponse"]["properties"]
+    assert respuesta["mode"]["enum"] == ["AUTOMATICO", "MANUAL"]
+    assert respuesta["valve"]["enum"] == ["ABIERTA", "CERRADA"]
+    assert respuesta["irrigation_speed"]["enum"] == ["BAJA", "MEDIA", "ALTA"]
 
 
 def test_cambio_es_visible_en_obtencion_posterior() -> None:

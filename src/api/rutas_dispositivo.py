@@ -10,7 +10,7 @@ from api.esquemas import (
 )
 from aplicacion.servicio_dispositivo import ServicioDispositivo
 from dominio.dispositivo_riego import DispositivoRiego
-from dominio.enumeraciones import EstadoValvula
+from dominio.enumeraciones import EstadoValvula, Modo, VelocidadRiego
 
 
 def _construir_estado_dispositivo(
@@ -18,9 +18,9 @@ def _construir_estado_dispositivo(
 ) -> EstadoDispositivoResponse:
     return EstadoDispositivoResponse.model_validate(
         {
-            "mode": dispositivo.modo,
-            "valve": dispositivo.estado_valvula,
-            "irrigation_speed": dispositivo.velocidad_riego,
+            "mode": dispositivo.modo.name,
+            "valve": dispositivo.estado_valvula.name,
+            "irrigation_speed": dispositivo.velocidad_riego.name,
             "soil_moisture": dispositivo.humedad_suelo,
             "water_level": dispositivo.nivel_agua,
             "minimum_moisture": dispositivo.humedad_minima,
@@ -39,18 +39,18 @@ def crear_router(servicio_dispositivo: ServicioDispositivo) -> APIRouter:
 
     @router.patch("/mode", response_model=EstadoDispositivoResponse)
     def cambiar_modo(solicitud: CambiarModoRequest) -> EstadoDispositivoResponse:
-        servicio_dispositivo.cambiar_modo(solicitud.modo)
+        servicio_dispositivo.cambiar_modo(Modo[solicitud.modo])
         return _construir_estado_dispositivo(dispositivo)
 
     @router.patch("/speed", response_model=EstadoDispositivoResponse)
     def cambiar_velocidad(solicitud: CambiarVelocidadRequest) -> EstadoDispositivoResponse:
-        servicio_dispositivo.cambiar_velocidad_riego(solicitud.velocidad)
+        servicio_dispositivo.cambiar_velocidad_riego(VelocidadRiego[solicitud.velocidad])
         return _construir_estado_dispositivo(dispositivo)
 
     @router.patch("/valve", response_model=EstadoDispositivoResponse)
     def cambiar_valvula(solicitud: CambiarValvulaRequest) -> EstadoDispositivoResponse:
         try:
-            if solicitud.estado == EstadoValvula.ABIERTA:
+            if EstadoValvula[solicitud.estado] == EstadoValvula.ABIERTA:
                 servicio_dispositivo.abrir_valvula()
             else:
                 servicio_dispositivo.cerrar_valvula()
