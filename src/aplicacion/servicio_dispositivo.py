@@ -6,6 +6,10 @@ class ServicioDispositivo:
     def __init__(self, dispositivo: DispositivoRiego) -> None:
         self._dispositivo = dispositivo
 
+    @property
+    def dispositivo(self) -> DispositivoRiego:
+        return self._dispositivo
+
     def cambiar_modo(self, modo: Modo) -> None:
         self._dispositivo.cambiar_modo(modo)
 

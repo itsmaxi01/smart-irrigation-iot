@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/aplicacion", "src/dominio", "src/ambiente", "src/simulacion"]
+packages = ["src/api", "src/aplicacion", "src/dominio", "src/ambiente", "src/simulacion"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
