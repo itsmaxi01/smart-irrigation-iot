@@ -1,12 +1,16 @@
+from collections.abc import Callable
 from random import Random
+from threading import Event, Lock, Thread
 
 import pytest
 
 from ambiente.ambiente_aleatorio import AmbienteAleatorio
 from ambiente.ambiente_manual import AmbienteManual
 from ambiente.selector_ambiente import SelectorAmbiente
+from aplicacion.servicio_dispositivo import ServicioDispositivo
 from dominio.dispositivo_riego import DispositivoRiego
 from dominio.enumeraciones import (
+    EstadoValvula,
     FuenteAmbiente,
     Lluvia,
     Modo,
@@ -14,6 +18,7 @@ from dominio.enumeraciones import (
     VelocidadRiego,
 )
 from simulacion.ejecutor_simulacion import EjecutorSimulacion
+from simulacion.motor_simulacion import MotorSimulacion
 
 
 def crear_dispositivo() -> DispositivoRiego:
@@ -51,27 +56,98 @@ def test_ambiente_manual_devuelve_y_actualiza_condiciones() -> None:
     assert ambiente.obtener_condiciones() == (30, 70, Radiacion.ALTA, Lluvia.FUERTE)
 
 
-def test_ejecutor_ejecuta_tick_y_luego_espera_un_segundo(
+def test_iniciar_ejecuta_ticks_automaticamente(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     dispositivo = crear_dispositivo()
     selector = crear_selector()
     selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
-    ejecutor = EjecutorSimulacion(dispositivo, selector)
-    esperas: list[float] = []
+    ejecutor = EjecutorSimulacion(dispositivo, selector, Lock())
+    tick_ejecutado = Event()
 
-    def detener_despues_de_esperar(segundos: float) -> None:
-        esperas.append(segundos)
+    def registrar_tick(
+        dispositivo: DispositivoRiego,
+        temperatura: float,
+        humedad_ambiente: float,
+        radiacion: Radiacion,
+        lluvia: Lluvia,
+    ) -> None:
+        tick_ejecutado.set()
+
+    monkeypatch.setattr(MotorSimulacion, "ejecutar_tick", staticmethod(registrar_tick))
+
+    ejecutor.iniciar()
+    try:
+        assert tick_ejecutado.wait(1)
+    finally:
         ejecutor.detener()
 
-    monkeypatch.setattr("simulacion.ejecutor_simulacion.dormir", detener_despues_de_esperar)
-
-    ejecutor.ejecutar()
-
-    assert dispositivo.humedad_suelo == pytest.approx(49.90)
-    assert esperas == [1.0]
     assert ejecutor.activo is False
-    assert selector.fuente_activa == FuenteAmbiente.MANUAL
+
+
+def test_detener_impide_nuevos_ticks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispositivo = crear_dispositivo()
+    selector = crear_selector()
+    ejecutor = EjecutorSimulacion(dispositivo, selector, Lock())
+    tick_ejecutado = Event()
+    ticks: list[None] = []
+
+    def registrar_tick(
+        dispositivo: DispositivoRiego,
+        temperatura: float,
+        humedad_ambiente: float,
+        radiacion: Radiacion,
+        lluvia: Lluvia,
+    ) -> None:
+        ticks.append(None)
+        tick_ejecutado.set()
+
+    monkeypatch.setattr(MotorSimulacion, "ejecutar_tick", staticmethod(registrar_tick))
+
+    ejecutor.iniciar()
+    assert tick_ejecutado.wait(1)
+    ejecutor.detener()
+    ticks_al_detener = len(ticks)
+
+    Event().wait(0.05)
+
+    assert len(ticks) == ticks_al_detener
+    assert ejecutor.activo is False
+
+
+def test_iniciar_dos_veces_crea_un_solo_hilo(monkeypatch: pytest.MonkeyPatch) -> None:
+    class HiloFalso:
+        def __init__(
+            self,
+            *,
+            target: Callable[[], None],
+            name: str,
+            daemon: bool,
+        ) -> None:
+            self._activo = False
+            hilos_creados.append(self)
+
+        def start(self) -> None:
+            self._activo = True
+
+        def is_alive(self) -> bool:
+            return self._activo
+
+        def join(self) -> None:
+            self._activo = False
+
+    hilos_creados: list[HiloFalso] = []
+
+    monkeypatch.setattr("simulacion.ejecutor_simulacion.Thread", HiloFalso)
+    ejecutor = EjecutorSimulacion(crear_dispositivo(), crear_selector(), Lock())
+
+    ejecutor.iniciar()
+    ejecutor.iniciar()
+
+    assert len(hilos_creados) == 1
+    ejecutor.detener()
 
 
 def test_ejecutor_lee_fuente_activa_en_cada_iteracion(
@@ -79,9 +155,14 @@ def test_ejecutor_lee_fuente_activa_en_cada_iteracion(
 ) -> None:
     dispositivo = crear_dispositivo()
     selector = crear_selector()
-    ejecutor = EjecutorSimulacion(dispositivo, selector)
-    ticks_ejecutados = 0
+    ejecutor = EjecutorSimulacion(dispositivo, selector, Lock())
     fuentes_usadas: list[FuenteAmbiente] = []
+    segundo_tick = Event()
+
+    ambiente_aleatorio = selector.obtener_ambiente_activo()
+    selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
+    ambiente_manual = selector.obtener_ambiente_activo()
+    selector.establecer_fuente_activa(FuenteAmbiente.ALEATORIO)
 
     def condiciones_aleatorias() -> tuple[float, float, Radiacion, Lluvia]:
         fuentes_usadas.append(FuenteAmbiente.ALEATORIO)
@@ -91,25 +172,128 @@ def test_ejecutor_lee_fuente_activa_en_cada_iteracion(
         fuentes_usadas.append(FuenteAmbiente.MANUAL)
         return 19, 80, Radiacion.BAJA, Lluvia.NINGUNA
 
-    ambiente_aleatorio = selector.obtener_ambiente_activo()
-    selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
-    ambiente_manual = selector.obtener_ambiente_activo()
-    selector.establecer_fuente_activa(FuenteAmbiente.ALEATORIO)
-
-    def cambiar_fuente_y_detener(_: float) -> None:
-        nonlocal ticks_ejecutados
-        ticks_ejecutados += 1
-        if ticks_ejecutados == 1:
+    def registrar_tick(
+        dispositivo: DispositivoRiego,
+        temperatura: float,
+        humedad_ambiente: float,
+        radiacion: Radiacion,
+        lluvia: Lluvia,
+    ) -> None:
+        if len(fuentes_usadas) == 1:
             selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
         else:
-            ejecutor.detener()
+            segundo_tick.set()
 
-    monkeypatch.setattr("simulacion.ejecutor_simulacion.dormir", cambiar_fuente_y_detener)
     monkeypatch.setattr(ambiente_aleatorio, "obtener_condiciones", condiciones_aleatorias)
     monkeypatch.setattr(ambiente_manual, "obtener_condiciones", condiciones_manuales)
+    monkeypatch.setattr(MotorSimulacion, "ejecutar_tick", staticmethod(registrar_tick))
+    monkeypatch.setattr("simulacion.ejecutor_simulacion.INTERVALO_TICK_SEGUNDOS", 0.01)
 
-    ejecutor.ejecutar()
+    ejecutor.iniciar()
+    try:
+        assert segundo_tick.wait(2)
+    finally:
+        ejecutor.detener()
 
-    assert ticks_ejecutados == 2
     assert fuentes_usadas == [FuenteAmbiente.ALEATORIO, FuenteAmbiente.MANUAL]
-    assert selector.fuente_activa == FuenteAmbiente.MANUAL
+
+
+def test_comando_externo_no_se_intercala_durante_tick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispositivo = crear_dispositivo()
+    selector = crear_selector()
+    bloqueo_dispositivo = Lock()
+    servicio = ServicioDispositivo(dispositivo, bloqueo_dispositivo)
+    ejecutor = EjecutorSimulacion(dispositivo, selector, bloqueo_dispositivo)
+    tick_iniciado = Event()
+    completar_tick = Event()
+    comando_iniciado = Event()
+    comando_terminado = Event()
+    velocidades_observadas: list[VelocidadRiego] = []
+
+    def tick_controlado(
+        dispositivo: DispositivoRiego,
+        temperatura: float,
+        humedad_ambiente: float,
+        radiacion: Radiacion,
+        lluvia: Lluvia,
+    ) -> None:
+        velocidades_observadas.append(dispositivo.velocidad_riego)
+        tick_iniciado.set()
+        completar_tick.wait(1)
+        velocidades_observadas.append(dispositivo.velocidad_riego)
+
+    def cambiar_velocidad() -> None:
+        comando_iniciado.set()
+        servicio.cambiar_velocidad_riego(VelocidadRiego.ALTA)
+        comando_terminado.set()
+
+    monkeypatch.setattr(MotorSimulacion, "ejecutar_tick", staticmethod(tick_controlado))
+    ejecutor.iniciar()
+    assert tick_iniciado.wait(1)
+
+    hilo_comando = Thread(target=cambiar_velocidad)
+    hilo_comando.start()
+    assert comando_iniciado.wait(1)
+    assert not comando_terminado.wait(0.05)
+
+    completar_tick.set()
+    assert comando_terminado.wait(1)
+    hilo_comando.join()
+    ejecutor.detener()
+
+    assert velocidades_observadas == [VelocidadRiego.MEDIA, VelocidadRiego.MEDIA]
+    assert dispositivo.velocidad_riego == VelocidadRiego.ALTA
+
+
+def test_lectura_obtiene_estado_completo_despues_del_tick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispositivo = crear_dispositivo()
+    selector = crear_selector()
+    bloqueo_dispositivo = Lock()
+    servicio = ServicioDispositivo(dispositivo, bloqueo_dispositivo)
+    ejecutor = EjecutorSimulacion(dispositivo, selector, bloqueo_dispositivo)
+    mitad_tick = Event()
+    completar_tick = Event()
+    lectura_iniciada = Event()
+    lectura_terminada = Event()
+    estados: list[
+        tuple[Modo, EstadoValvula, VelocidadRiego, float, float, float, float]
+    ] = []
+
+    def tick_controlado(
+        dispositivo: DispositivoRiego,
+        temperatura: float,
+        humedad_ambiente: float,
+        radiacion: Radiacion,
+        lluvia: Lluvia,
+    ) -> None:
+        dispositivo.aplicar_cambio_humedad(10)
+        mitad_tick.set()
+        completar_tick.wait(1)
+        dispositivo.consumir_agua(5)
+
+    def leer_estado() -> None:
+        lectura_iniciada.set()
+        estados.append(servicio.obtener_estado())
+        lectura_terminada.set()
+
+    monkeypatch.setattr(MotorSimulacion, "ejecutar_tick", staticmethod(tick_controlado))
+    ejecutor.iniciar()
+    assert mitad_tick.wait(1)
+
+    hilo_lectura = Thread(target=leer_estado)
+    hilo_lectura.start()
+    assert lectura_iniciada.wait(1)
+    assert not lectura_terminada.wait(0.05)
+
+    completar_tick.set()
+    assert lectura_terminada.wait(1)
+    hilo_lectura.join()
+    ejecutor.detener()
+
+    estado = estados[0]
+    assert estado[3] == 60
+    assert estado[4] == 95

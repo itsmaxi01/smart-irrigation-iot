@@ -1,4 +1,4 @@
-from time import sleep as dormir
+from threading import Event, Lock, Thread
 
 from ambiente.selector_ambiente import SelectorAmbiente
 from dominio.dispositivo_riego import DispositivoRiego
@@ -12,23 +12,43 @@ class EjecutorSimulacion:
         self,
         dispositivo: DispositivoRiego,
         selector_ambiente: SelectorAmbiente,
+        bloqueo_dispositivo: Lock,
     ) -> None:
         self._dispositivo = dispositivo
         self._selector_ambiente = selector_ambiente
-        self._activo = False
+        self._bloqueo_dispositivo = bloqueo_dispositivo
+        self._evento_detencion = Event()
+        self._hilo: Thread | None = None
 
     @property
     def activo(self) -> bool:
-        return self._activo
+        return self._hilo is not None and self._hilo.is_alive()
 
-    def ejecutar(self) -> None:
-        self._activo = True
+    def iniciar(self) -> None:
+        if self.activo:
+            return
 
-        while self._activo:
-            ambiente = self._selector_ambiente.obtener_ambiente_activo()
-            condiciones = ambiente.obtener_condiciones()
-            MotorSimulacion.ejecutar_tick(self._dispositivo, *condiciones)
-            dormir(INTERVALO_TICK_SEGUNDOS)
+        self._evento_detencion.clear()
+        self._hilo = Thread(
+            target=self._ejecutar_ciclo,
+            name="simulacion-riego",
+            daemon=True,
+        )
+        self._hilo.start()
 
     def detener(self) -> None:
-        self._activo = False
+        self._evento_detencion.set()
+
+        if self._hilo is not None:
+            self._hilo.join()
+            self._hilo = None
+
+    def _ejecutar_ciclo(self) -> None:
+        while not self._evento_detencion.is_set():
+            ambiente = self._selector_ambiente.obtener_ambiente_activo()
+            condiciones = ambiente.obtener_condiciones()
+
+            with self._bloqueo_dispositivo:
+                MotorSimulacion.ejecutar_tick(self._dispositivo, *condiciones)
+
+            self._evento_detencion.wait(INTERVALO_TICK_SEGUNDOS)

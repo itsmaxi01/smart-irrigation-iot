@@ -5,6 +5,7 @@ from ambiente.ambiente_aleatorio import (
     HUMEDAD_MINIMA,
     TEMPERATURA_MAXIMA,
     TEMPERATURA_MINIMA,
+    AmbienteAleatorio,
     generar_condiciones_aleatorias,
 )
 from dominio.enumeraciones import Lluvia, Radiacion
@@ -24,3 +25,12 @@ def test_ambiente_aleatorio_devuelve_condiciones_validas() -> None:
     assert HUMEDAD_MINIMA <= humedad_ambiente <= HUMEDAD_MAXIMA
     assert isinstance(radiacion, Radiacion)
     assert isinstance(lluvia, Lluvia)
+
+
+def test_ambiente_aleatorio_mantiene_sus_condiciones() -> None:
+    ambiente = AmbienteAleatorio(Random(42))
+
+    primeras_condiciones = ambiente.obtener_condiciones()
+    segundas_condiciones = ambiente.obtener_condiciones()
+
+    assert primeras_condiciones == segundas_condiciones

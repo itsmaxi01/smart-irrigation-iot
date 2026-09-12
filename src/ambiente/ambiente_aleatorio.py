@@ -23,9 +23,10 @@ def generar_condiciones_aleatorias(
 
 class AmbienteAleatorio:
     def __init__(self, generador_aleatorio: Random | None = None) -> None:
-        self._generador_aleatorio = (
+        generador = (
             generador_aleatorio if generador_aleatorio is not None else Random()
         )
+        self._condiciones = generar_condiciones_aleatorias(generador)
 
     def obtener_condiciones(self) -> tuple[float, float, Radiacion, Lluvia]:
-        return generar_condiciones_aleatorias(self._generador_aleatorio)
+        return self._condiciones

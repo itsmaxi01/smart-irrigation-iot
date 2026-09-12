@@ -31,3 +31,27 @@ class EstadoDispositivoResponse(BaseModel):
     nivel_agua: float = Field(alias="water_level")
     humedad_minima: float = Field(alias="minimum_moisture")
     humedad_objetivo: float = Field(alias="target_moisture")
+
+
+class CambiarFuenteAmbienteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fuente: Literal["MANUAL", "ALEATORIO"] = Field(alias="source")
+
+
+class FuenteAmbienteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fuente: Literal["MANUAL", "ALEATORIO"] = Field(alias="source")
+
+
+class EstadoAmbienteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fuente: Literal["MANUAL", "ALEATORIO"] = Field(alias="source")
+    temperatura: float = Field(alias="temperature")
+    humedad_ambiente: float = Field(alias="ambient_humidity")
+    radiacion: Literal["BAJA", "MEDIA", "ALTA"] = Field(alias="radiation")
+    lluvia: Literal["NINGUNA", "LIGERA", "MODERADA", "FUERTE"] = Field(
+        alias="rain"
+    )

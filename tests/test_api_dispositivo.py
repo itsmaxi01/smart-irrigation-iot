@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from api.principal import app, dispositivo, servicio_dispositivo
+from api.principal import app, dispositivo, ejecutor_simulacion, servicio_dispositivo
 from dominio.enumeraciones import Modo, VelocidadRiego
 
 cliente = TestClient(app)
@@ -164,11 +164,34 @@ def test_cambio_es_visible_en_obtencion_posterior() -> None:
     assert respuesta.json()["mode"] == "AUTOMATICO"
 
 
-def test_api_y_servicio_comparten_la_misma_instancia() -> None:
+def test_api_modifica_la_instancia_compuesta_en_principal() -> None:
     cliente.patch("/api/device/speed", json={"speed": "ALTA"})
 
-    assert servicio_dispositivo.dispositivo is dispositivo
+    estado = servicio_dispositivo.obtener_estado()
+    assert estado[2] == VelocidadRiego.ALTA
     assert dispositivo.velocidad_riego == VelocidadRiego.ALTA
+
+
+def test_lifespan_inicia_y_detiene_ejecutor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    llamadas: list[str] = []
+
+    monkeypatch.setattr(
+        ejecutor_simulacion,
+        "iniciar",
+        lambda: llamadas.append("iniciar"),
+    )
+    monkeypatch.setattr(
+        ejecutor_simulacion,
+        "detener",
+        lambda: llamadas.append("detener"),
+    )
+
+    with TestClient(app):
+        assert llamadas == ["iniciar"]
+
+    assert llamadas == ["iniciar", "detener"]
 
 
 def test_cambiar_velocidad_no_modifica_humedad_ni_agua() -> None:
