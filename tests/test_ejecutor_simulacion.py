@@ -297,3 +297,38 @@ def test_lectura_obtiene_estado_completo_despues_del_tick(
     estado = estados[0]
     assert estado[3] == 60
     assert estado[4] == 95
+
+
+def test_notifica_estado_despues_del_tick_y_fuera_del_lock() -> None:
+    dispositivo = crear_dispositivo()
+    selector = crear_selector()
+    selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
+    bloqueo_dispositivo = Lock()
+    notificacion_recibida = Event()
+    estados_publicados: list[tuple[tuple[float, float, Radiacion, Lluvia], float]] = []
+
+    def publicar_estado(
+        condiciones: tuple[float, float, Radiacion, Lluvia],
+    ) -> None:
+        assert bloqueo_dispositivo.acquire(blocking=False)
+        bloqueo_dispositivo.release()
+        estados_publicados.append((condiciones, dispositivo.humedad_suelo))
+        notificacion_recibida.set()
+
+    ejecutor = EjecutorSimulacion(
+        dispositivo,
+        selector,
+        bloqueo_dispositivo,
+        publicar_estado,
+    )
+
+    ejecutor.iniciar()
+    try:
+        assert notificacion_recibida.wait(1)
+    finally:
+        ejecutor.detener()
+
+    assert estados_publicados[0] == (
+        (19, 80, Radiacion.BAJA, Lluvia.NINGUNA),
+        49.9,
+    )

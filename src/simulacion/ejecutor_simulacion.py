@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from threading import Event, Lock, Thread
 
 from ambiente.selector_ambiente import SelectorAmbiente
 from dominio.dispositivo_riego import DispositivoRiego
+from dominio.enumeraciones import Lluvia, Radiacion
 from simulacion.motor_simulacion import MotorSimulacion
 
 INTERVALO_TICK_SEGUNDOS = 1.0
+type CondicionesAmbiente = tuple[float, float, Radiacion, Lluvia]
 
 
 class EjecutorSimulacion:
@@ -13,10 +16,12 @@ class EjecutorSimulacion:
         dispositivo: DispositivoRiego,
         selector_ambiente: SelectorAmbiente,
         bloqueo_dispositivo: Lock,
+        al_completar_tick: Callable[[CondicionesAmbiente], None] | None = None,
     ) -> None:
         self._dispositivo = dispositivo
         self._selector_ambiente = selector_ambiente
         self._bloqueo_dispositivo = bloqueo_dispositivo
+        self._al_completar_tick = al_completar_tick
         self._evento_detencion = Event()
         self._hilo: Thread | None = None
 
@@ -50,5 +55,8 @@ class EjecutorSimulacion:
 
             with self._bloqueo_dispositivo:
                 MotorSimulacion.ejecutar_tick(self._dispositivo, *condiciones)
+
+            if self._al_completar_tick is not None:
+                self._al_completar_tick(condiciones)
 
             self._evento_detencion.wait(INTERVALO_TICK_SEGUNDOS)

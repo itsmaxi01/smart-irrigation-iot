@@ -1,7 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from api.principal import app, dispositivo, ejecutor_simulacion, servicio_dispositivo
+from api.principal import (
+    app,
+    cliente_mqtt,
+    dispositivo,
+    ejecutor_simulacion,
+    servicio_dispositivo,
+)
 from dominio.enumeraciones import Modo, VelocidadRiego
 
 cliente = TestClient(app)
@@ -185,13 +191,28 @@ def test_lifespan_inicia_y_detiene_ejecutor(
     monkeypatch.setattr(
         ejecutor_simulacion,
         "detener",
-        lambda: llamadas.append("detener"),
+        lambda: llamadas.append("simulacion_detener"),
+    )
+    monkeypatch.setattr(
+        cliente_mqtt,
+        "iniciar",
+        lambda: llamadas.append("mqtt_iniciar"),
+    )
+    monkeypatch.setattr(
+        cliente_mqtt,
+        "detener",
+        lambda: llamadas.append("mqtt_detener"),
     )
 
     with TestClient(app):
-        assert llamadas == ["iniciar"]
+        assert llamadas == ["mqtt_iniciar", "iniciar"]
 
-    assert llamadas == ["iniciar", "detener"]
+    assert llamadas == [
+        "mqtt_iniciar",
+        "iniciar",
+        "simulacion_detener",
+        "mqtt_detener",
+    ]
 
 
 def test_cambiar_velocidad_no_modifica_humedad_ni_agua() -> None:
