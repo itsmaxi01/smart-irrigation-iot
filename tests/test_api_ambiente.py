@@ -117,7 +117,9 @@ def test_rechaza_actualizar_ambiente_manual_si_la_fuente_es_aleatoria() -> None:
 
     assert respuesta.status_code == 409
     assert respuesta.json() == {
-        "detail": "El ambiente manual solo puede modificarse cuando la fuente es MANUAL"
+        "code": "MANUAL_ENVIRONMENT_REQUIRED",
+        "message": "El ambiente manual solo puede modificarse cuando la fuente es MANUAL",
+        "fields": None,
     }
     assert ambiente_manual.obtener_condiciones() == (
         25,

@@ -1,8 +1,9 @@
 # pyright: reportUnusedFunction=false
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
 from ambiente.selector_ambiente import SelectorAmbiente
+from api.errores import ErrorApi, respuestas_error
 from api.esquemas import (
     ActualizarAmbienteManualRequest,
     CambiarFuenteAmbienteRequest,
@@ -38,7 +39,11 @@ def _construir_ambiente_manual(
 def crear_router(selector_ambiente: SelectorAmbiente) -> APIRouter:
     router = APIRouter(prefix="/api/environment", tags=["environment"])
 
-    @router.get("", response_model=EstadoAmbienteResponse)
+    @router.get(
+        "",
+        response_model=EstadoAmbienteResponse,
+        responses=respuestas_error(404, 405, 500),
+    )
     def obtener_ambiente() -> EstadoAmbienteResponse:
         fuente, condiciones = selector_ambiente.obtener_estado_activo()
         temperatura, humedad_ambiente, radiacion, lluvia = condiciones
@@ -53,11 +58,19 @@ def crear_router(selector_ambiente: SelectorAmbiente) -> APIRouter:
             }
         )
 
-    @router.get("/manual", response_model=EstadoAmbienteManualResponse)
+    @router.get(
+        "/manual",
+        response_model=EstadoAmbienteManualResponse,
+        responses=respuestas_error(404, 405, 500),
+    )
     def obtener_ambiente_manual() -> EstadoAmbienteManualResponse:
         return _construir_ambiente_manual(selector_ambiente)
 
-    @router.put("/manual", response_model=EstadoAmbienteManualResponse)
+    @router.put(
+        "/manual",
+        response_model=EstadoAmbienteManualResponse,
+        responses=respuestas_error(404, 405, 409, 422, 500),
+    )
     def actualizar_ambiente_manual(
         solicitud: ActualizarAmbienteManualRequest,
     ) -> EstadoAmbienteManualResponse:
@@ -69,18 +82,27 @@ def crear_router(selector_ambiente: SelectorAmbiente) -> APIRouter:
                 Lluvia[solicitud.lluvia],
             )
         except ValueError as error:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(error),
+            raise ErrorApi(
+                status.HTTP_409_CONFLICT,
+                "MANUAL_ENVIRONMENT_REQUIRED",
+                str(error),
             ) from error
 
         return _construir_ambiente_manual(selector_ambiente)
 
-    @router.get("/source", response_model=FuenteAmbienteResponse)
+    @router.get(
+        "/source",
+        response_model=FuenteAmbienteResponse,
+        responses=respuestas_error(404, 405, 500),
+    )
     def obtener_fuente() -> FuenteAmbienteResponse:
         return _construir_respuesta(selector_ambiente)
 
-    @router.patch("/source", response_model=FuenteAmbienteResponse)
+    @router.patch(
+        "/source",
+        response_model=FuenteAmbienteResponse,
+        responses=respuestas_error(404, 405, 422, 500),
+    )
     def cambiar_fuente(
         solicitud: CambiarFuenteAmbienteRequest,
     ) -> FuenteAmbienteResponse:

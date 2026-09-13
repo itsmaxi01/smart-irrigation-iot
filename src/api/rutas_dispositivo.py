@@ -1,7 +1,8 @@
 # pyright: reportUnusedFunction=false
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
+from api.errores import ErrorApi, respuestas_error
 from api.esquemas import (
     CambiarModoRequest,
     CambiarValvulaRequest,
@@ -41,21 +42,37 @@ def _construir_estado_dispositivo(
 def crear_router(servicio_dispositivo: ServicioDispositivo) -> APIRouter:
     router = APIRouter(prefix="/api/device", tags=["device"])
 
-    @router.get("", response_model=EstadoDispositivoResponse)
+    @router.get(
+        "",
+        response_model=EstadoDispositivoResponse,
+        responses=respuestas_error(404, 405, 500),
+    )
     def obtener_dispositivo() -> EstadoDispositivoResponse:
         return _construir_estado_dispositivo(servicio_dispositivo)
 
-    @router.patch("/mode", response_model=EstadoDispositivoResponse)
+    @router.patch(
+        "/mode",
+        response_model=EstadoDispositivoResponse,
+        responses=respuestas_error(404, 405, 422, 500),
+    )
     def cambiar_modo(solicitud: CambiarModoRequest) -> EstadoDispositivoResponse:
         servicio_dispositivo.cambiar_modo(Modo[solicitud.modo])
         return _construir_estado_dispositivo(servicio_dispositivo)
 
-    @router.patch("/speed", response_model=EstadoDispositivoResponse)
+    @router.patch(
+        "/speed",
+        response_model=EstadoDispositivoResponse,
+        responses=respuestas_error(404, 405, 422, 500),
+    )
     def cambiar_velocidad(solicitud: CambiarVelocidadRequest) -> EstadoDispositivoResponse:
         servicio_dispositivo.cambiar_velocidad_riego(VelocidadRiego[solicitud.velocidad])
         return _construir_estado_dispositivo(servicio_dispositivo)
 
-    @router.patch("/valve", response_model=EstadoDispositivoResponse)
+    @router.patch(
+        "/valve",
+        response_model=EstadoDispositivoResponse,
+        responses=respuestas_error(404, 405, 409, 422, 500),
+    )
     def cambiar_valvula(solicitud: CambiarValvulaRequest) -> EstadoDispositivoResponse:
         try:
             if EstadoValvula[solicitud.estado] == EstadoValvula.ABIERTA:
@@ -63,8 +80,10 @@ def crear_router(servicio_dispositivo: ServicioDispositivo) -> APIRouter:
             else:
                 servicio_dispositivo.cerrar_valvula()
         except ValueError as error:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=str(error)
+            raise ErrorApi(
+                status.HTTP_409_CONFLICT,
+                "VALVE_CONTROL_REQUIRES_MANUAL_MODE",
+                str(error),
             ) from error
 
         return _construir_estado_dispositivo(servicio_dispositivo)

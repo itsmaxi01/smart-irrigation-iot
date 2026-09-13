@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from ambiente.ambiente_aleatorio import AmbienteAleatorio
 from ambiente.ambiente_manual import AmbienteManual
 from ambiente.selector_ambiente import SelectorAmbiente
+from api.errores import registrar_manejadores_errores
 from api.rutas_ambiente import crear_router as crear_router_ambiente
 from api.rutas_dispositivo import crear_router as crear_router_dispositivo
 from aplicacion.servicio_dispositivo import ServicioDispositivo
@@ -61,5 +62,6 @@ async def ciclo_vida(_: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(lifespan=ciclo_vida)
+registrar_manejadores_errores(app)
 app.include_router(crear_router_dispositivo(servicio_dispositivo))
 app.include_router(crear_router_ambiente(selector_ambiente))

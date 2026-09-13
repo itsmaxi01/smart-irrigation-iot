@@ -88,7 +88,9 @@ def test_rechaza_controlar_valvula_en_automatico(estado: str) -> None:
 
     assert respuesta.status_code == 409
     assert respuesta.json() == {
-        "detail": "La válvula solo puede controlarse en modo manual"
+        "code": "VALVE_CONTROL_REQUIRES_MANUAL_MODE",
+        "message": "La válvula solo puede controlarse en modo manual",
+        "fields": None,
     }
 
 
