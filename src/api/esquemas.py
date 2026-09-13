@@ -55,3 +55,25 @@ class EstadoAmbienteResponse(BaseModel):
     lluvia: Literal["NINGUNA", "LIGERA", "MODERADA", "FUERTE"] = Field(
         alias="rain"
     )
+
+
+class ActualizarAmbienteManualRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    temperatura: float = Field(alias="temperature", ge=-273.15)
+    humedad_ambiente: float = Field(alias="ambient_humidity", ge=0, le=100)
+    radiacion: Literal["BAJA", "MEDIA", "ALTA"] = Field(alias="radiation")
+    lluvia: Literal["NINGUNA", "LIGERA", "MODERADA", "FUERTE"] = Field(
+        alias="rain"
+    )
+
+
+class EstadoAmbienteManualResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    temperatura: float = Field(alias="temperature")
+    humedad_ambiente: float = Field(alias="ambient_humidity")
+    radiacion: Literal["BAJA", "MEDIA", "ALTA"] = Field(alias="radiation")
+    lluvia: Literal["NINGUNA", "LIGERA", "MODERADA", "FUERTE"] = Field(
+        alias="rain"
+    )

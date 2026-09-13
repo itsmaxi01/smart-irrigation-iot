@@ -8,13 +8,20 @@ from api.principal import (
     ejecutor_simulacion,
     selector_ambiente,
 )
-from dominio.enumeraciones import FuenteAmbiente
+from dominio.enumeraciones import FuenteAmbiente, Lluvia, Radiacion
 
 cliente = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
 def restablecer_fuente_ambiente() -> None:
+    selector_ambiente.establecer_fuente_activa(FuenteAmbiente.MANUAL)
+    selector_ambiente.actualizar_ambiente_manual(
+        25,
+        50,
+        Radiacion.MEDIA,
+        Lluvia.NINGUNA,
+    )
     selector_ambiente.establecer_fuente_activa(FuenteAmbiente.ALEATORIO)
 
 
@@ -83,6 +90,106 @@ def test_obtener_ambiente_no_modifica_condiciones() -> None:
 
     assert ambiente_aleatorio.obtener_condiciones() == condiciones_aleatorias
     assert ambiente_manual.obtener_condiciones() == condiciones_manuales
+
+
+def test_obtener_perfil_manual_inicial_aunque_la_fuente_sea_aleatoria() -> None:
+    respuesta = cliente.get("/api/environment/manual")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {
+        "temperature": 25,
+        "ambient_humidity": 50,
+        "radiation": "MEDIA",
+        "rain": "NINGUNA",
+    }
+
+
+def test_rechaza_actualizar_ambiente_manual_si_la_fuente_es_aleatoria() -> None:
+    respuesta = cliente.put(
+        "/api/environment/manual",
+        json={
+            "temperature": 31,
+            "ambient_humidity": 42,
+            "radiation": "ALTA",
+            "rain": "LIGERA",
+        },
+    )
+
+    assert respuesta.status_code == 409
+    assert respuesta.json() == {
+        "detail": "El ambiente manual solo puede modificarse cuando la fuente es MANUAL"
+    }
+    assert ambiente_manual.obtener_condiciones() == (
+        25,
+        50,
+        Radiacion.MEDIA,
+        Lluvia.NINGUNA,
+    )
+
+
+def test_actualiza_snapshot_manual_completo_cuando_la_fuente_es_manual() -> None:
+    cliente.patch("/api/environment/source", json={"source": "MANUAL"})
+
+    respuesta = cliente.put(
+        "/api/environment/manual",
+        json={
+            "temperature": 31,
+            "ambient_humidity": 42,
+            "radiation": "ALTA",
+            "rain": "LIGERA",
+        },
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {
+        "temperature": 31,
+        "ambient_humidity": 42,
+        "radiation": "ALTA",
+        "rain": "LIGERA",
+    }
+    assert cliente.get("/api/environment").json() == {
+        "source": "MANUAL",
+        "temperature": 31,
+        "ambient_humidity": 42,
+        "radiation": "ALTA",
+        "rain": "LIGERA",
+    }
+
+
+@pytest.mark.parametrize(
+    "campo, valor",
+    [
+        ("temperature", -274),
+        ("ambient_humidity", -1),
+        ("ambient_humidity", 101),
+        ("radiation", "EXTREMA"),
+        ("rain", "TORMENTA"),
+    ],
+)
+def test_rechaza_condiciones_manuales_invalidas(campo: str, valor: object) -> None:
+    cliente.patch("/api/environment/source", json={"source": "MANUAL"})
+    payload: dict[str, object] = {
+        "temperature": 25,
+        "ambient_humidity": 50,
+        "radiation": "MEDIA",
+        "rain": "NINGUNA",
+    }
+    payload[campo] = valor
+
+    respuesta = cliente.put("/api/environment/manual", json=payload)
+
+    assert respuesta.status_code == 422
+
+
+def test_actualizar_ambiente_manual_requiere_snapshot_completo() -> None:
+    cliente.patch("/api/environment/source", json={"source": "MANUAL"})
+
+    respuesta = cliente.put(
+        "/api/environment/manual",
+        json={"temperature": 25},
+    )
+
+    assert respuesta.status_code == 422
 
 
 def test_cambiar_fuente_a_manual_es_visible_en_obtencion_posterior() -> None:

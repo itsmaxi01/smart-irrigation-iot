@@ -56,6 +56,61 @@ def test_ambiente_manual_devuelve_y_actualiza_condiciones() -> None:
     assert ambiente.obtener_condiciones() == (30, 70, Radiacion.ALTA, Lluvia.FUERTE)
 
 
+def test_selector_no_intercala_lectura_y_actualizacion_del_ambiente_manual(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    selector = crear_selector()
+    selector.establecer_fuente_activa(FuenteAmbiente.MANUAL)
+    ambiente = selector.obtener_ambiente_activo()
+    assert isinstance(ambiente, AmbienteManual)
+    obtener_condiciones_original = ambiente.obtener_condiciones
+    lectura_iniciada = Event()
+    permitir_lectura = Event()
+    actualizacion_terminada = Event()
+    estados: list[
+        tuple[FuenteAmbiente, tuple[float, float, Radiacion, Lluvia]]
+    ] = []
+
+    def obtener_condiciones_controladas() -> tuple[float, float, Radiacion, Lluvia]:
+        lectura_iniciada.set()
+        permitir_lectura.wait(1)
+        return obtener_condiciones_original()
+
+    def leer_estado() -> None:
+        estados.append(selector.obtener_estado_activo())
+
+    def actualizar_ambiente() -> None:
+        selector.actualizar_ambiente_manual(
+            30,
+            70,
+            Radiacion.ALTA,
+            Lluvia.FUERTE,
+        )
+        actualizacion_terminada.set()
+
+    monkeypatch.setattr(ambiente, "obtener_condiciones", obtener_condiciones_controladas)
+    hilo_lectura = Thread(target=leer_estado)
+    hilo_actualizacion = Thread(target=actualizar_ambiente)
+    hilo_lectura.start()
+    assert lectura_iniciada.wait(1)
+    hilo_actualizacion.start()
+    assert not actualizacion_terminada.wait(0.05)
+
+    permitir_lectura.set()
+    hilo_lectura.join()
+    hilo_actualizacion.join()
+
+    assert estados == [
+        (FuenteAmbiente.MANUAL, (19, 80, Radiacion.BAJA, Lluvia.NINGUNA))
+    ]
+    assert selector.obtener_condiciones_manuales() == (
+        30,
+        70,
+        Radiacion.ALTA,
+        Lluvia.FUERTE,
+    )
+
+
 def test_iniciar_ejecuta_ticks_automaticamente(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

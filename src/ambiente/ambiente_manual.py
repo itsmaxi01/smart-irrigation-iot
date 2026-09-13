@@ -9,13 +9,10 @@ class AmbienteManual:
         radiacion: Radiacion,
         lluvia: Lluvia,
     ) -> None:
-        self._temperatura = temperatura
-        self._humedad_ambiente = humedad_ambiente
-        self._radiacion = radiacion
-        self._lluvia = lluvia
+        self._condiciones = (temperatura, humedad_ambiente, radiacion, lluvia)
 
     def obtener_condiciones(self) -> tuple[float, float, Radiacion, Lluvia]:
-        return self._temperatura, self._humedad_ambiente, self._radiacion, self._lluvia
+        return self._condiciones
 
     def actualizar_condiciones(
         self,
@@ -24,7 +21,4 @@ class AmbienteManual:
         radiacion: Radiacion,
         lluvia: Lluvia,
     ) -> None:
-        self._temperatura = temperatura
-        self._humedad_ambiente = humedad_ambiente
-        self._radiacion = radiacion
-        self._lluvia = lluvia
+        self._condiciones = (temperatura, humedad_ambiente, radiacion, lluvia)

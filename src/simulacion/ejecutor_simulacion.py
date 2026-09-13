@@ -50,8 +50,7 @@ class EjecutorSimulacion:
 
     def _ejecutar_ciclo(self) -> None:
         while not self._evento_detencion.is_set():
-            ambiente = self._selector_ambiente.obtener_ambiente_activo()
-            condiciones = ambiente.obtener_condiciones()
+            _, condiciones = self._selector_ambiente.obtener_estado_activo()
 
             with self._bloqueo_dispositivo:
                 MotorSimulacion.ejecutar_tick(self._dispositivo, *condiciones)

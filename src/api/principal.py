@@ -37,7 +37,7 @@ selector_ambiente = SelectorAmbiente(ambiente_manual, ambiente_aleatorio)
 
 
 def obtener_condiciones_ambiente() -> tuple[float, float, Radiacion, Lluvia]:
-    return selector_ambiente.obtener_ambiente_activo().obtener_condiciones()
+    return selector_ambiente.obtener_estado_activo()[1]
 
 
 cliente_mqtt = ClienteMqtt(servicio_dispositivo, obtener_condiciones_ambiente)
