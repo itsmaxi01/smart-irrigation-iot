@@ -1,8 +1,10 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from ambiente.ambiente_aleatorio import AmbienteAleatorio
 from ambiente.ambiente_manual import AmbienteManual
@@ -65,3 +67,8 @@ app = FastAPI(lifespan=ciclo_vida)
 registrar_manejadores_errores(app)
 app.include_router(crear_router_dispositivo(servicio_dispositivo))
 app.include_router(crear_router_ambiente(selector_ambiente))
+app.mount(
+    "/",
+    StaticFiles(directory=Path(__file__).resolve().parents[2] / "frontend", html=True),
+    name="frontend",
+)

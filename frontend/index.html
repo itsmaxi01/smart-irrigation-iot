@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Local control surface for the Smart Irrigation IoT Simulator"
+    />
+    <title>Smart Irrigation · IoT Simulator</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/main.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Smart Irrigation home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M16 3C12 9 7 14 7 20a9 9 0 0 0 18 0c0-6-5-11-9-17Z" />
+            <path d="M12 22c1 2 3 3 5 3" />
+          </svg>
+        </span>
+        <span>
+          <strong>Smart Irrigation</strong>
+          <small>IoT Simulator</small>
+        </span>
+      </a>
+
+      <div
+        class="connection-pill is-connecting"
+        id="connection-status"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="connection-dot" aria-hidden="true"></span>
+        <span id="connection-label">Connecting</span>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="overview-grid" aria-label="Irrigation overview">
+        <article class="card moisture-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">Live soil reading</p>
+              <h1>Soil Moisture</h1>
+            </div>
+            <span class="mode-badge" id="mode-badge">—</span>
+          </div>
+
+          <div class="moisture-content">
+            <div
+              class="moisture-gauge"
+              id="moisture-gauge"
+              role="meter"
+              aria-label="Soil moisture"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <svg viewBox="0 0 220 220" aria-hidden="true">
+                <circle class="gauge-track" cx="110" cy="110" r="88" />
+                <circle class="gauge-progress" id="moisture-progress" cx="110" cy="110" r="88" />
+              </svg>
+              <div class="gauge-value">
+                <strong><span id="soil-moisture">—</span><span class="unit">%</span></strong>
+                <span id="moisture-assessment">Waiting for data</span>
+              </div>
+            </div>
+
+            <dl class="threshold-list">
+              <div>
+                <dt>Minimum</dt>
+                <dd><span id="minimum-moisture">—</span>%</dd>
+              </div>
+              <div>
+                <dt>Target</dt>
+                <dd><span id="target-moisture">—</span>%</dd>
+              </div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="card garden-card" aria-labelledby="garden-title">
+          <div class="card-heading garden-heading">
+            <div>
+              <p class="eyebrow">Device activity</p>
+              <h2 id="garden-title">Garden Zone</h2>
+            </div>
+            <span class="valve-badge" id="valve-badge">Valve —</span>
+          </div>
+
+          <div class="garden-visual" id="garden-visual" aria-hidden="true">
+            <svg viewBox="0 0 560 255" role="img">
+              <defs>
+                <linearGradient id="sky-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#dff4ec" />
+                  <stop offset="1" stop-color="#f4f8e9" />
+                </linearGradient>
+              </defs>
+              <rect width="560" height="255" rx="22" fill="url(#sky-gradient)" />
+              <circle cx="468" cy="55" r="23" class="garden-sun" />
+              <path class="garden-hill hill-back" d="M0 167C88 101 163 142 232 158c91 21 157-75 328-7v104H0Z" />
+              <path class="garden-hill hill-front" d="M0 193c117-61 205 3 292-8 100-13 171-55 268-3v73H0Z" />
+              <path class="pipe" d="M103 219v-62h85" />
+              <path class="spray" d="M188 157c45-49 102-52 151-6" />
+              <path class="spray" d="M188 157c40-17 79-12 113 15" />
+              <g class="water-drops">
+                <path d="M231 126c-7 10-8 12-8 16a8 8 0 0 0 16 0c0-4-1-6-8-16Z" />
+                <path d="M280 119c-7 10-8 12-8 16a8 8 0 0 0 16 0c0-4-1-6-8-16Z" />
+                <path d="M324 139c-6 8-7 10-7 13a7 7 0 0 0 14 0c0-3-1-5-7-13Z" />
+              </g>
+              <g class="plants">
+                <path d="M365 216v-61M365 180c-29-5-40-19-42-37 24 0 39 10 42 29M365 194c30-5 44-21 46-41-25 1-42 11-46 31" />
+                <path d="M452 226v-45M452 202c-21-3-31-13-34-27 18 0 30 8 34 20M452 210c22-3 33-14 35-29-18 1-31 9-35 23" />
+              </g>
+            </svg>
+          </div>
+
+          <div class="water-level-block">
+            <div class="water-level-copy">
+              <span>Water Level</span>
+              <strong><span id="water-level">—</span>%</strong>
+            </div>
+            <div
+              class="progress-track"
+              id="water-progress"
+              role="progressbar"
+              aria-label="Water level"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <span id="water-progress-fill"></span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="environment-section" aria-labelledby="environment-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Current conditions</p>
+            <h2 id="environment-title">Environment</h2>
+          </div>
+          <span class="source-badge" id="environment-source-badge">Source —</span>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">°</span>
+            <div><span>Temperature</span><strong><span id="temperature">—</span> °C</strong></div>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">%</span>
+            <div><span>Ambient Humidity</span><strong><span id="ambient-humidity">—</span>%</strong></div>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon sun-icon" aria-hidden="true">☼</span>
+            <div><span>Radiation</span><strong id="radiation">—</strong></div>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon rain-icon" aria-hidden="true">◌</span>
+            <div><span>Rain</span><strong id="rain">—</strong></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="control-grid" aria-label="Device and simulation controls">
+        <article class="card controls-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Device</p>
+              <h2>Controls</h2>
+            </div>
+          </div>
+
+          <div class="control-stack">
+            <fieldset class="control-group" id="mode-controls">
+              <legend>Mode</legend>
+              <div class="segmented-control">
+                <button type="button" data-mode="AUTOMATICO">Automatic</button>
+                <button type="button" data-mode="MANUAL">Manual</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group" id="speed-controls">
+              <legend>Irrigation Speed</legend>
+              <div class="segmented-control three-options">
+                <button type="button" data-speed="BAJA">Low</button>
+                <button type="button" data-speed="MEDIA">Medium</button>
+                <button type="button" data-speed="ALTA">High</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group" id="valve-controls">
+              <legend>Valve</legend>
+              <div class="segmented-control">
+                <button type="button" data-valve="ABIERTA">Open</button>
+                <button type="button" data-valve="CERRADA">Closed</button>
+              </div>
+              <p class="control-hint" id="valve-hint" aria-live="polite">
+                Select Manual mode to operate the valve.
+              </p>
+            </fieldset>
+          </div>
+        </article>
+
+        <article class="card simulation-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Simulation</p>
+              <h2>Environment Source</h2>
+            </div>
+          </div>
+
+          <fieldset class="control-group source-control" id="source-controls">
+            <legend>Condition source</legend>
+            <div class="segmented-control">
+              <button type="button" data-source="ALEATORIO">Random</button>
+              <button type="button" data-source="MANUAL">Manual</button>
+            </div>
+          </fieldset>
+
+          <form id="manual-environment-form" novalidate>
+            <fieldset id="manual-environment-fields" class="manual-fields" disabled>
+              <legend>Manual conditions</legend>
+              <p class="manual-disabled-note" id="manual-disabled-note">
+                Switch the environment source to Manual to edit these conditions.
+              </p>
+
+              <div class="form-grid">
+                <label>
+                  <span>Temperature</span>
+                  <span class="input-with-unit">
+                    <input
+                      id="manual-temperature"
+                      name="temperature"
+                      type="number"
+                      min="-273.15"
+                      step="0.1"
+                      inputmode="decimal"
+                      required
+                    />
+                    <span>°C</span>
+                  </span>
+                </label>
+
+                <label>
+                  <span>Ambient Humidity</span>
+                  <span class="input-with-unit">
+                    <input
+                      id="manual-humidity"
+                      name="ambient_humidity"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      inputmode="decimal"
+                      required
+                    />
+                    <span>%</span>
+                  </span>
+                </label>
+
+                <label>
+                  <span>Radiation</span>
+                  <select id="manual-radiation" name="radiation" required>
+                    <option value="BAJA">Low</option>
+                    <option value="MEDIA">Medium</option>
+                    <option value="ALTA">High</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Rain</span>
+                  <select id="manual-rain" name="rain" required>
+                    <option value="NINGUNA">None</option>
+                    <option value="LIGERA">Light</option>
+                    <option value="MODERADA">Moderate</option>
+                    <option value="FUERTE">Heavy</option>
+                  </select>
+                </label>
+              </div>
+
+              <button class="primary-button" id="save-manual-environment" type="submit">
+                Apply conditions
+              </button>
+            </fieldset>
+          </form>
+        </article>
+      </section>
+    </main>
+
+    <div class="feedback" id="feedback" role="status" aria-live="polite" hidden>
+      <span class="feedback-mark" aria-hidden="true"></span>
+      <span id="feedback-message"></span>
+    </div>
+  </body>
+</html>
