@@ -29,6 +29,8 @@ services:
       - "127.0.0.1:8123:8123"
     volumes:
       - homeassistant_config:/config
+      - ./docker/homeassistant/configuration.yaml:/config/configuration.yaml:ro
+      - ./docker/homeassistant/smart-irrigation-dashboard.yaml:/config/smart-irrigation-dashboard.yaml:ro
 
 volumes:
   mosquitto_data:

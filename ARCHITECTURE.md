@@ -272,7 +272,7 @@ Compose utiliza su red default y el DNS por nombre de servicio.
 |---|---|---|---|
 | `simulator` | Dockerfile del repositorio | `127.0.0.1:8000` | Estado en memoria |
 | `mosquitto` | `eclipse-mosquitto:2` | No publicado | Volumen `/mosquitto/data` |
-| `home-assistant` | Imagen oficial `stable` | `127.0.0.1:8123` | Volumen `/config` |
+| `home-assistant` | Imagen oficial `stable` | `127.0.0.1:8123` | Volumen `/config` y dashboard YAML versionado |
 
 Compose inyecta `MQTT_HOST=mosquitto`, `MQTT_PORT=1883` y
 `MQTT_CLIENT_ID=smart-irrigation-simulator`. Sin esas variables,
@@ -285,9 +285,15 @@ Mosquitto permite conexiones anónimas, persiste retained messages y escribe log
 stdout. El puerto 1883 solo está disponible dentro de la red Compose.
 
 Home Assistant requiere onboarding y configuración manual de la integración MQTT con
-broker `mosquitto`. Discovery y sus entidades son reproducibles desde el código. Usuarios,
-credenciales y dashboards creados en la UI permanecen en el volumen local y no se
-versionan.
+broker `mosquitto`. Discovery y sus entidades son reproducibles desde el código. Los
+`default_entity_id` de Discovery conservan los nombres históricos `cuby_irrigation` para
+que instalaciones existentes y nuevas compartan los mismos identificadores. Así,
+`smart-irrigation-dashboard.yaml` puede referenciarlos sin depender del idioma del
+onboarding.
+
+El volumen nombrado conserva usuarios, credenciales, integraciones y cualquier cambio
+creado desde la UI. Dos bind mounts de solo lectura superponen `configuration.yaml` y el
+dashboard Lovelace versionado dentro de `/config`; esos archivos no contienen secretos.
 
 ## Decisiones y trade-offs
 
@@ -317,5 +323,6 @@ Límites actuales:
 - no existen autenticación ni cifrado MQTT;
 - no hay telemetría histórica ni soporte multi-dispositivo;
 - los umbrales no se modifican mediante API o MQTT;
-- el dashboard personalizado de Home Assistant no se distribuye desde Git;
+- los cambios al dashboard YAML requieren editar el archivo versionado y reiniciar o
+  refrescar el dashboard de Home Assistant;
 - no se garantiza entrega de snapshots generados mientras MQTT está desconectado.

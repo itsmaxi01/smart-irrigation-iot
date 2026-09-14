@@ -31,13 +31,18 @@ La descripción de componentes, flujos, concurrencia y contratos MQTT está en
 
 ## Inicio rápido con Docker
 
-Requisito: Docker Desktop con Docker Compose.
+Requisito: Git y Docker Desktop con Docker Compose.
 
-```console
-docker compose up --build
+```powershell
+git clone https://github.com/itsmaxi01/smart-irrigation-iot.git
+cd smart-irrigation-iot
+docker compose pull
+docker compose up --build -d
+docker compose ps
 ```
 
-Servicios disponibles:
+La primera construcción puede tardar varios minutos. Cuando los tres servicios aparezcan
+en ejecución, abre:
 
 - Aplicación y frontend: <http://localhost:8000>
 - Swagger UI: <http://localhost:8000/docs>
@@ -45,23 +50,53 @@ Servicios disponibles:
 
 ### Configurar Home Assistant
 
-Home Assistant conserva su configuración, pero no incluye usuarios ni credenciales en
-Git. En el primer arranque:
+Home Assistant conserva usuarios, credenciales e integraciones en un volumen local, pero
+ninguno de esos datos sensibles se incluye en Git. El repositorio sí distribuye un
+dashboard **Smart Irrigation** reproducible. En el primer arranque:
 
-1. Completa el onboarding en <http://localhost:8123>.
-2. Abre **Settings > Devices & services > Add integration > MQTT**.
-3. Usa `mosquitto` como broker y `1883` como puerto, sin usuario ni contraseña.
-4. Espera a que MQTT Discovery registre el dispositivo **Smart Irrigation**.
+1. Entra a <http://localhost:8123> y crea tu propio usuario durante el onboarding.
+2. Completa nombre del hogar, ubicación, zona horaria y preferencias de privacidad.
+3. Abre **Settings > Devices & services**.
+4. Pulsa **Add integration**, busca **MQTT** y selecciónala.
+5. Escribe `mosquitto` en **Broker** y `1883` en **Port**. Deja vacíos usuario y
+   contraseña.
+6. Finaliza la integración y espera unos segundos a que MQTT Discovery registre el
+   dispositivo **Smart Irrigation**.
+7. Abre **Smart Irrigation** desde la barra lateral. También puedes entrar directamente
+   en <http://localhost:8123/irrigation-dashboard/irrigation>. El dashboard mostrará los
+   sensores y permitirá operar modo, velocidad y válvula.
 
-Discovery crea tres controles y ocho sensores. El dashboard creado desde la interfaz de
-Home Assistant se guarda en el volumen local, pero no está versionado; una instalación
-nueva recibe las entidades, no un dashboard personalizado.
+Discovery crea tres controles y ocho sensores. La válvula solo acepta cambios cuando el
+dispositivo está en modo `MANUAL`; en `AUTOMATICO`, la política del simulador conserva el
+control.
+
+Si Home Assistant todavía está iniciando, revisa su progreso con:
+
+```powershell
+docker compose logs -f home-assistant
+```
+
+Presiona `Ctrl+C` para salir de los logs sin detener los contenedores.
 
 Para detener los contenedores sin perder la configuración:
 
 ```console
 docker compose down
 ```
+
+Para volver a iniciar conservando onboarding y configuración:
+
+```powershell
+docker compose up -d
+```
+
+Para eliminar también todos los datos locales y repetir el onboarding desde cero:
+
+```powershell
+docker compose down -v
+```
+
+Este último comando elimina los volúmenes de Mosquitto y Home Assistant.
 
 ## API REST
 
@@ -134,6 +169,7 @@ src/
 frontend/          HTML, CSS y JavaScript vanilla
 tests/             Tests automatizados
 docker/mosquitto/  Configuración local del broker
+docker/homeassistant/ Configuración y dashboard Lovelace reproducibles
 ```
 
 ## Decisiones y límites

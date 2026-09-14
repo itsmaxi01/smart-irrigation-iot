@@ -1,0 +1,12 @@
+default_config:
+
+lovelace:
+  mode: storage
+  dashboards:
+    irrigation-dashboard:
+      mode: yaml
+      title: Smart Irrigation
+      icon: mdi:sprinkler-variant
+      show_in_sidebar: true
+      require_admin: false
+      filename: smart-irrigation-dashboard.yaml

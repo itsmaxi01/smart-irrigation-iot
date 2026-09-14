@@ -83,6 +83,7 @@ def mensajes_discovery() -> tuple[tuple[str, str], ...]:
             **comunes,
             "name": "Mode",
             "unique_id": "cuby_irrigation_mode",
+            "default_entity_id": "select.cuby_irrigation_mode",
             "command_topic": TOPIC_MODO,
             "value_template": "{{ value_json.mode }}",
             "options": ["AUTOMATICO", "MANUAL"],
@@ -91,6 +92,7 @@ def mensajes_discovery() -> tuple[tuple[str, str], ...]:
             **comunes,
             "name": "Irrigation speed",
             "unique_id": "cuby_irrigation_speed",
+            "default_entity_id": "select.cuby_irrigation_irrigation_speed",
             "command_topic": TOPIC_VELOCIDAD,
             "value_template": "{{ value_json.irrigation_speed }}",
             "options": ["BAJA", "MEDIA", "ALTA"],
@@ -99,6 +101,7 @@ def mensajes_discovery() -> tuple[tuple[str, str], ...]:
             **comunes,
             "name": "Valve",
             "unique_id": "cuby_irrigation_valve",
+            "default_entity_id": "switch.cuby_irrigation_valve",
             "command_topic": TOPIC_VALVULA,
             "value_template": "{{ value_json.valve }}",
             "payload_on": "ABIERTA",
@@ -143,6 +146,7 @@ def _configuracion_sensor(
         **comunes,
         "name": nombre,
         "unique_id": f"cuby_irrigation_{clave}",
+        "default_entity_id": f"sensor.cuby_irrigation_{clave}",
         "value_template": f"{{{{ value_json.{clave} }}}}",
     }
     if unidad is not None:

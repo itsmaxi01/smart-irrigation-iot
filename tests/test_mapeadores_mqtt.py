@@ -46,6 +46,26 @@ def test_discovery_usa_nombre_visible_del_proyecto_sin_cambiar_identificador() -
     assert dispositivo["identifiers"] == ["cuby-irrigation"]
 
 
+def test_discovery_define_entity_ids_estables_para_dashboard() -> None:
+    configuraciones = {
+        json.loads(payload)["unique_id"]: json.loads(payload)
+        for _, payload in mensajes_discovery()
+    }
+
+    assert configuraciones["cuby_irrigation_mode"]["default_entity_id"] == (
+        "select.cuby_irrigation_mode"
+    )
+    assert configuraciones["cuby_irrigation_speed"]["default_entity_id"] == (
+        "select.cuby_irrigation_irrigation_speed"
+    )
+    assert configuraciones["cuby_irrigation_valve"]["default_entity_id"] == (
+        "switch.cuby_irrigation_valve"
+    )
+    assert configuraciones["cuby_irrigation_soil_moisture"]["default_entity_id"] == (
+        "sensor.cuby_irrigation_soil_moisture"
+    )
+
+
 def test_mapea_snapshot_completo_a_payload_json() -> None:
     estado = (
         Modo.AUTOMATICO,

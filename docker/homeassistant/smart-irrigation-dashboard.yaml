@@ -1,0 +1,91 @@
+views:
+  - title: Irrigation
+    path: irrigation
+    icon: mdi:sprinkler-variant
+    cards:
+      - type: markdown
+        content: |
+          # Smart Irrigation
+          Monitor and control the simulated irrigation device from Home Assistant.
+
+          **Status:** {{ states('select.cuby_irrigation_mode') }} ·
+          **Valve:** {{ states('switch.cuby_irrigation_valve') }}
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.cuby_irrigation_soil_moisture
+            name: Soil moisture
+            min: 0
+            max: 100
+            needle: true
+            segments:
+              - from: 0
+                color: var(--error-color)
+              - from: 30
+                color: var(--warning-color)
+              - from: 60
+                color: var(--success-color)
+          - type: gauge
+            entity: sensor.cuby_irrigation_water_level
+            name: Water level
+            min: 0
+            max: 100
+            needle: true
+            segments:
+              - from: 0
+                color: var(--error-color)
+              - from: 20
+                color: var(--warning-color)
+              - from: 50
+                color: var(--info-color)
+
+      - type: entities
+        title: Irrigation controls
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: select.cuby_irrigation_mode
+            name: Mode
+            icon: mdi:cog-sync
+          - entity: select.cuby_irrigation_irrigation_speed
+            name: Irrigation speed
+            icon: mdi:speedometer
+          - entity: switch.cuby_irrigation_valve
+            name: Valve
+            icon: mdi:valve
+
+      - type: grid
+        title: Environment
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.cuby_irrigation_temperature
+            name: Temperature
+            color: orange
+          - type: tile
+            entity: sensor.cuby_irrigation_ambient_humidity
+            name: Ambient humidity
+            color: blue
+          - type: tile
+            entity: sensor.cuby_irrigation_radiation
+            name: Radiation
+            color: amber
+          - type: tile
+            entity: sensor.cuby_irrigation_rain
+            name: Rain
+            color: light-blue
+
+      - type: entities
+        title: Moisture policy
+        show_header_toggle: false
+        entities:
+          - entity: sensor.cuby_irrigation_minimum_moisture
+            name: Minimum moisture
+            icon: mdi:water-minus
+          - entity: sensor.cuby_irrigation_target_moisture
+            name: Target moisture
+            icon: mdi:water-check
