@@ -31,7 +31,7 @@ type CondicionesAmbiente = tuple[float, float, Radiacion, Lluvia]
 
 _DISPOSITIVO_HOME_ASSISTANT = {
     "identifiers": ["cuby-irrigation"],
-    "name": "Cuby Irrigation",
+    "name": "Smart Irrigation",
     "manufacturer": "Smart Irrigation IoT Simulator",
     "model": "Simulator",
 }

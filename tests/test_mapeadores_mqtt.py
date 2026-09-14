@@ -38,6 +38,14 @@ def test_discovery_define_precision_de_sensores_numericos() -> None:
     ] == 0
 
 
+def test_discovery_usa_nombre_visible_del_proyecto_sin_cambiar_identificador() -> None:
+    _, payload = mensajes_discovery()[0]
+    dispositivo = json.loads(payload)["device"]
+
+    assert dispositivo["name"] == "Smart Irrigation"
+    assert dispositivo["identifiers"] == ["cuby-irrigation"]
+
+
 def test_mapea_snapshot_completo_a_payload_json() -> None:
     estado = (
         Modo.AUTOMATICO,
