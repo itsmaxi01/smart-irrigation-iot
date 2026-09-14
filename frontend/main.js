@@ -126,6 +126,8 @@ const dom = {
   sourceControls: document.querySelector("#source-controls"),
   manualForm: document.querySelector("#manual-environment-form"),
   manualFields: document.querySelector("#manual-environment-fields"),
+  conditionsEditorTitle: document.querySelector("#conditions-editor-title"),
+  manualDisabledNote: document.querySelector("#manual-disabled-note"),
   manualTemperature: document.querySelector("#manual-temperature"),
   manualHumidity: document.querySelector("#manual-humidity"),
   manualRadiation: document.querySelector("#manual-radiation"),
@@ -270,6 +272,12 @@ function renderFuenteAmbiente(source) {
   const manual = source === "MANUAL";
   const formBusy = dom.manualFields.dataset.busy === "true";
   dom.manualFields.disabled = !manual || formBusy;
+  dom.conditionsEditorTitle.textContent = manual
+    ? "Manual conditions"
+    : "Live random conditions";
+  dom.manualDisabledNote.textContent = manual
+    ? ""
+    : "Current simulated conditions are read-only. Switch the source to Manual to edit them.";
 }
 
 function renderEstadoConexion(connected) {
@@ -459,8 +467,15 @@ async function actualizarVista() {
     renderAmbiente(environmentResult.value);
   }
 
-  if (manualEnvironmentResult.status === "fulfilled") {
-    renderAmbienteManual(manualEnvironmentResult.value);
+  if (environmentResult.status === "fulfilled") {
+    if (environmentResult.value.source === "ALEATORIO") {
+      dom.manualForm.dataset.dirty = "false";
+      renderAmbienteManual(environmentResult.value);
+    } else if (manualEnvironmentResult.status === "fulfilled") {
+      renderAmbienteManual(manualEnvironmentResult.value);
+    } else {
+      renderAmbienteManual(environmentResult.value);
+    }
   }
 
   const connected =
