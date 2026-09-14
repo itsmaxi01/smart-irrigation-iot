@@ -17,6 +17,33 @@ ser un modelo agronómico de precisión.
 - Interfaz web responsive servida por FastAPI, sin dependencias frontend externas.
 - Stack local con FastAPI, Mosquitto y Home Assistant mediante Docker Compose.
 
+## Demostración
+
+El mismo dispositivo puede observarse y operarse desde dos interfaces. Ambas muestran
+el estado autoritativo del backend; ninguna mantiene una copia independiente de las
+reglas del simulador.
+
+### 1. Frontend web mediante REST
+
+Después de ejecutar `docker compose up --build -d`, la aplicación queda disponible en
+<http://localhost:8000>. El frontend consulta periódicamente el dispositivo y el ambiente,
+muestra la humedad del suelo como variable principal y envía los comandos a la API REST.
+
+![Frontend web de Smart Irrigation](docs/images/frontend-dashboard.png)
+
+### 2. Home Assistant mediante MQTT
+
+Una vez completado el onboarding y agregada la integración MQTT con `mosquitto:1883`, el
+simulador publica Discovery, availability y el snapshot vigente. Home Assistant crea los
+sensores y controles automáticamente, y el dashboard versionado aparece en la barra
+lateral como **Smart Irrigation**.
+
+![Dashboard de Smart Irrigation en Home Assistant](docs/images/home-assistant-dashboard.png)
+
+Un comando iniciado en Home Assistant viaja por MQTT hasta `ServicioDispositivo`; uno
+iniciado en el frontend llega al mismo servicio mediante REST. Tras el siguiente tick,
+el snapshot publicado sincroniza nuevamente ambas interfaces.
+
 ## Arquitectura
 
 `DispositivoRiego` mantiene el estado autoritativo y protege las invariantes físicas.
