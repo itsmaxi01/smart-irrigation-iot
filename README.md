@@ -23,6 +23,13 @@ El mismo dispositivo puede observarse y operarse desde dos interfaces. Ambas mue
 el estado autoritativo del backend; ninguna mantiene una copia independiente de las
 reglas del simulador.
 
+### Video de funcionamiento
+
+[▶ Ver la demostración completa del frontend y Home Assistant](docs/videos/smart-irrigation-demo.mp4)
+
+El recorrido muestra los cambios de la simulación en tiempo real, la operación desde el
+frontend REST y la vista sincronizada mediante MQTT en Home Assistant.
+
 ### 1. Frontend web mediante REST
 
 Después de ejecutar `docker compose up --build -d`, la aplicación queda disponible en
