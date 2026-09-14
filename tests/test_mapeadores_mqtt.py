@@ -10,11 +10,32 @@ from dominio.enumeraciones import (
     VelocidadRiego,
 )
 from mqtt.mapeadores import (
+    mensajes_discovery,
     payload_a_estado_valvula,
     payload_a_modo,
     payload_a_velocidad,
     snapshot_a_payload,
 )
+
+
+def test_discovery_define_precision_de_sensores_numericos() -> None:
+    configuraciones = {
+        json.loads(payload)["unique_id"]: json.loads(payload)
+        for _, payload in mensajes_discovery()
+    }
+
+    assert configuraciones["cuby_irrigation_soil_moisture"][
+        "suggested_display_precision"
+    ] == 1
+    assert configuraciones["cuby_irrigation_water_level"][
+        "suggested_display_precision"
+    ] == 1
+    assert configuraciones["cuby_irrigation_minimum_moisture"][
+        "suggested_display_precision"
+    ] == 0
+    assert configuraciones["cuby_irrigation_target_moisture"][
+        "suggested_display_precision"
+    ] == 0
 
 
 def test_mapea_snapshot_completo_a_payload_json() -> None:

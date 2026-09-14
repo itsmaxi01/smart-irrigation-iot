@@ -16,6 +16,7 @@ from aplicacion.servicio_dispositivo import ServicioDispositivo
 from dominio.dispositivo_riego import DispositivoRiego
 from dominio.enumeraciones import Lluvia, Modo, Radiacion, VelocidadRiego
 from mqtt.cliente import ClienteMqtt
+from mqtt.configuracion import ConfiguracionMqtt
 from simulacion.ejecutor_simulacion import EjecutorSimulacion
 
 dispositivo = DispositivoRiego(
@@ -43,7 +44,12 @@ def obtener_condiciones_ambiente() -> tuple[float, float, Radiacion, Lluvia]:
     return selector_ambiente.obtener_estado_activo()[1]
 
 
-cliente_mqtt = ClienteMqtt(servicio_dispositivo, obtener_condiciones_ambiente)
+configuracion_mqtt = ConfiguracionMqtt.desde_entorno()
+cliente_mqtt = ClienteMqtt(
+    servicio_dispositivo,
+    obtener_condiciones_ambiente,
+    configuracion=configuracion_mqtt,
+)
 ejecutor_simulacion = EjecutorSimulacion(
     dispositivo,
     selector_ambiente,

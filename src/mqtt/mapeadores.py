@@ -106,12 +106,22 @@ def mensajes_discovery() -> tuple[tuple[str, str], ...]:
             "state_on": "ABIERTA",
             "state_off": "CERRADA",
         },
-        _configuracion_sensor(comunes, "Soil moisture", "soil_moisture", "%", "moisture"),
-        _configuracion_sensor(comunes, "Water level", "water_level", "%"),
-        _configuracion_sensor(comunes, "Minimum moisture", "minimum_moisture", "%"),
-        _configuracion_sensor(comunes, "Target moisture", "target_moisture", "%"),
-        _configuracion_sensor(comunes, "Temperature", "temperature", "°C", "temperature"),
-        _configuracion_sensor(comunes, "Ambient humidity", "ambient_humidity", "%", "humidity"),
+        _configuracion_sensor(
+            comunes, "Soil moisture", "soil_moisture", "%", "moisture", 1
+        ),
+        _configuracion_sensor(comunes, "Water level", "water_level", "%", precision=1),
+        _configuracion_sensor(
+            comunes, "Minimum moisture", "minimum_moisture", "%", precision=0
+        ),
+        _configuracion_sensor(
+            comunes, "Target moisture", "target_moisture", "%", precision=0
+        ),
+        _configuracion_sensor(
+            comunes, "Temperature", "temperature", "°C", "temperature", 1
+        ),
+        _configuracion_sensor(
+            comunes, "Ambient humidity", "ambient_humidity", "%", "humidity", 1
+        ),
         _configuracion_sensor(comunes, "Radiation", "radiation"),
         _configuracion_sensor(comunes, "Rain", "rain"),
     )
@@ -127,6 +137,7 @@ def _configuracion_sensor(
     clave: str,
     unidad: str | None = None,
     clase_dispositivo: str | None = None,
+    precision: int | None = None,
 ) -> dict[str, object]:
     configuracion: dict[str, object] = {
         **comunes,
@@ -138,6 +149,8 @@ def _configuracion_sensor(
         configuracion["unit_of_measurement"] = unidad
     if clase_dispositivo is not None:
         configuracion["device_class"] = clase_dispositivo
+    if precision is not None:
+        configuracion["suggested_display_precision"] = precision
     return configuracion
 
 

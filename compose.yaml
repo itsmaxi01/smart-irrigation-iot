@@ -1,0 +1,36 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+
+  simulator:
+    build: .
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_CLIENT_ID: smart-irrigation-simulator
+    depends_on:
+      - mosquitto
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  home-assistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    environment:
+      TZ: America/Mexico_City
+    depends_on:
+      - mosquitto
+    ports:
+      - "127.0.0.1:8123:8123"
+    volumes:
+      - homeassistant_config:/config
+
+volumes:
+  mosquitto_data:
+  homeassistant_config:
+    name: homeassistant_config
